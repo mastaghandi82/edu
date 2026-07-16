@@ -1,0 +1,16 @@
+# Claude Code — lokale, persönliche Einstellungen (Permissions, die nur für dich gelten)
+.claude/settings.local.json
+
+# Betriebssystem-Artefakte
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Abhängigkeiten / Build (aktuell ungenutzt — für später)
+node_modules/
+dist/

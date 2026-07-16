@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Von der lokalen Datei zur Live-URL — Lernnotizen</title>
+<meta name="description" content="Lernnotizen: Git, GitHub Pages und Claude Code. Diese Seite dokumentiert den Prozess, mit dem sie selbst deployt wird.">
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --muted: #5c5c5c;
+    --line: #e3e0da;
+    --accent: #7a3e12;
+    --accent-soft: #f3ede5;
+    --code-bg: #f5f2ee;
+    --warn-bg: #fdf6e8;
+    --warn-line: #d9a441;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151a;
+      --surface: #1e1d23;
+      --text: #e8e6e3;
+      --muted: #a09d98;
+      --line: #33313a;
+      --accent: #e0a370;
+      --accent-soft: #2a2129;
+      --code-bg: #242229;
+      --warn-bg: #2a2318;
+      --warn-line: #8a6a2a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px 96px; }
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--line); margin-bottom: 40px; }
+  .kicker {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 { font-size: clamp(30px, 5.5vw, 44px); line-height: 1.12; margin: 0 0 18px; letter-spacing: -.02em; }
+  .lede { font-size: 19px; color: var(--muted); margin: 0; }
+  h2 {
+    font-size: 25px; margin: 56px 0 14px; letter-spacing: -.01em;
+    padding-top: 8px;
+  }
+  h3 { font-size: 17px; margin: 30px 0 8px; }
+  p { margin: 0 0 16px; }
+  a { color: var(--accent); }
+  code {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .875em; background: var(--code-bg);
+    padding: .14em .4em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 16px; overflow-x: auto; margin: 0 0 18px;
+  }
+  pre code { background: none; padding: 0; font-size: 13.5px; line-height: 1.6; }
+  .flow {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px; margin: 0 0 22px; overflow-x: auto;
+  }
+  .flow pre { border: 0; background: none; padding: 0; margin: 0; color: var(--muted); }
+  .note {
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 0 0 22px;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .warn {
+    background: var(--warn-bg); border-left: 3px solid var(--warn-line);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 0 0 22px;
+  }
+  .warn p:last-child { margin-bottom: 0; }
+  .tbl { overflow-x: auto; margin: 0 0 22px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td code { white-space: nowrap; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  .key {
+    font-size: 17px; border: 1px solid var(--line); background: var(--surface);
+    border-radius: 10px; padding: 22px 24px; margin: 32px 0;
+  }
+  .key strong { color: var(--accent); }
+  footer {
+    margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Lernnotizen</p>
+  <h1>Von der lokalen Datei zur Live-URL</h1>
+  <p class="lede">
+    Was zwischen <code>git init</code> und einer öffentlich erreichbaren Adresse passiert —
+    und wie Claude Code dabei mitarbeitet. Aufgeschrieben beim ersten eigenen Durchlauf.
+  </p>
+</header>
+
+<div class="note">
+  <p><strong>Diese Seite dokumentiert den Prozess, mit dem sie selbst veröffentlicht wird.</strong>
+  Jede Änderung an dieser Datei löst genau die Kette aus, die hier beschrieben steht. Die Doku
+  kann damit nicht veralten, ohne dass es auffällt — sie ist der Testfall.</p>
+</div>
+
+<h2>Die Kette</h2>
+
+<div class="flow">
+<pre>git push origin main
+  │
+  └─▸ GitHub Actions startet eine frische Ubuntu-VM
+        │
+        ├─▸ checkout ............ Repo holen
+        ├─▸ upload-artifact ..... Ordner site/ einpacken
+        └─▸ deploy-pages ........ veröffentlichen
+              │
+              └─▸ https://mastaghandi82.github.io/edu/</pre>
+</div>
+
+<p>
+  Niemand lädt Dateien irgendwohin. Ein Push ist der einzige Auslöser. Der Wert liegt in der
+  Reproduzierbarkeit: Die VM ist jedes Mal neu und leer. Es gibt kein „läuft bei mir“ — was
+  nicht im Repo steht, existiert nicht. Eine vergessene lokale Datei wird so sofort zum
+  sichtbaren Fehler statt zur stillen Zeitbombe.
+</p>
+
+<h2>Git in einem Bild</h2>
+
+<div class="flow">
+<pre>Working Directory  ──add──▸  Staging Area  ──commit──▸  Repository
+(deine Dateien)              (Vormerkung)               (Schnappschuss)</pre>
+</div>
+
+<p>
+  Die <strong>Staging Area</strong> ist der Schritt, den andere Systeme nicht haben, und
+  zuerst wirkt er überflüssig. Sein Nutzen zeigt sich, sobald zehn Dateien geändert sind, aber
+  nur drei inhaltlich zusammengehören: <code>git add</code> nimmt gezielt diese drei. Ein
+  Commit soll <em>eine</em> Änderung sein — nicht „alles, was gerade rumlag“.
+</p>
+
+<h2>Vier Fallen beim ersten Mal</h2>
+
+<h3>1. Der Branch heißt <code>master</code></h3>
+<p>
+  <code>git init</code> ohne Argument nennt den ersten Branch <code>master</code>. Der
+  Deploy-Workflow lauscht aber auf <code>main</code>. Folge: kein Fehler, keine Meldung — es
+  passiert einfach nichts.
+</p>
+<pre><code>git init -b main
+git config --global init.defaultBranch main   # ein für alle Mal</code></pre>
+
+<h3>2. Die E-Mail landet öffentlich in jedem Commit</h3>
+<p>
+  Autor-Name und E-Mail stehen dauerhaft in der Historie; in einem öffentlichen Repo lesen
+  Crawler sie aus. GitHub stellt dafür eine <code>noreply</code>-Adresse bereit — die
+  Zuordnung zum Account funktioniert trotzdem, sie läuft über die Adresse, nicht den Namen.
+</p>
+<pre><code>git config --global user.email "&lt;id&gt;+&lt;user&gt;@users.noreply.github.com"
+# eigene ID:  gh api user --jq .id</code></pre>
+
+<h3>3. Der <code>workflow</code>-Scope fehlt</h3>
+<p>
+  Ohne ihn verweigert GitHub das Pushen von Dateien unter <code>.github/workflows/</code> —
+  mit einer Meldung, die nicht danach klingt. <code>gh auth login</code> setzt ihn mit.
+</p>
+
+<h3>4. Grüner Workflow, trotzdem 404</h3>
+<div class="warn">
+  <p><strong>Die häufigste Falle überhaupt.</strong> Der Workflow im Repo aktiviert GitHub
+  Pages <em>nicht</em>. Die Quelle muss einmalig im Browser umgestellt werden:
+  <code>Settings → Pages → Build and deployment → Source → GitHub Actions</code>.</p>
+  <p>Deshalb ist ein grüner Haken <em>kein</em> Beweis. Nur die aufgerufene URL ist einer.</p>
+</div>
+
+<h2>Ignorieren: zwei Wege, ein Unterschied</h2>
+
+<div class="tbl">
+<table>
+  <tr><th></th><th><code>.gitignore</code></th><th><code>.git/info/exclude</code></th></tr>
+  <tr><td>Wird committet</td><td><strong>ja</strong></td><td><strong>nie</strong></td></tr>
+  <tr><td>Aussage</td><td>„gehört in <em>niemandes</em> Repo“</td><td>„will <em>ich</em> hier nicht sehen“</td></tr>
+  <tr><td>Beispiel</td><td><code>node_modules/</code>, <code>.env</code></td><td>eigene Notizen</td></tr>
+</table>
+</div>
+
+<p>
+  Prüfen, <em>warum</em> etwas ignoriert wird — die Ausgabe nennt Datei und Zeile der Regel:
+</p>
+<pre><code>git check-ignore -v .claude/progress.md
+# .git/info/exclude:9:.claude/progress.md</code></pre>
+
+<div class="warn">
+  <p>Ignorieren wirkt nur auf <strong>noch nie committete</strong> Dateien. Was einmal drin
+  war, bleibt drin — die Regel kommt zu spät. Deshalb <code>.gitignore</code> vor dem ersten
+  Commit anlegen. Bei versehentlich committeten Secrets reicht Löschen nicht: Sie stehen in
+  der Historie und sind als kompromittiert zu behandeln.</p>
+</div>
+
+<h2>Der Workflow</h2>
+
+<pre><code>on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read      # checkout darf lesen
+  pages: write        # darf deployen
+  id-token: write     # darf ein OIDC-Token anfordern
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false</code></pre>
+
+<p>
+  Der <code>permissions</code>-Block <strong>ersetzt die Standardrechte vollständig</strong> —
+  der Job kann nur, was dort steht. <code>id-token</code> ist das unintuitivste: Damit fordert
+  der Lauf ein kurzlebiges Token an, mit dem Pages prüft, dass das Deployment aus legitimer
+  Quelle stammt. Kein dauerhaftes Secret im Spiel.
+</p>
+<p>
+  <code>cancel-in-progress: false</code> ist bewusst gewählt: Ein <em>laufendes</em> Deployment
+  wird nie abgebrochen. Bei CI-Tests wäre <code>true</code> richtig — veraltete Läufe
+  abwürgen spart Zeit. Ein abgebrochener Produktiv-Deploy hinterlässt dagegen womöglich einen
+  halben Stand.
+</p>
+
+<div class="warn">
+  <p><strong>Versionsnummern nachschlagen, nicht erinnern.</strong> Aktuell sind
+  <code>checkout@v7</code>, <code>configure-pages@v6</code>,
+  <code>upload-pages-artifact@v5</code>, <code>deploy-pages@v5</code> — gegen die GitHub-API
+  geprüft. Kurios: GitHubs <em>eigene</em> Starter-Vorlage zeigt noch einen älteren Mix. Auch
+  offizielle Doku veraltet.</p>
+</div>
+
+<h2>Claude Code: das Grundproblem</h2>
+
+<p>
+  Fast jede Design-Entscheidung lässt sich auf einen Satz zurückführen: <strong>Kontext ist
+  endlich.</strong> Das Kontextfenster ist der Arbeitsspeicher — alles darin kostet, bei jeder
+  Anfrage neu. Daraus folgt die Frage, die jede Konfigurationsentscheidung beantwortet:
+  <em>Muss das immer geladen sein, oder nur bei Bedarf?</em>
+</p>
+
+<div class="tbl">
+<table>
+  <tr><th>Baustein</th><th>Wann geladen</th><th>Wofür</th></tr>
+  <tr><td><code>CLAUDE.md</code></td><td><strong>immer</strong></td><td>Fakten übers Projekt</td></tr>
+  <tr><td>Skills</td><td>nur bei Bedarf</td><td>Prozeduren</td></tr>
+  <tr><td>Subagents</td><td>eigener Kontext</td><td>Teilaufgaben auslagern</td></tr>
+  <tr><td>Hooks</td><td>Automatik</td><td>Determinismus erzwingen</td></tr>
+</table>
+</div>
+
+<p>
+  Daraus folgt die Faustregel: <strong>Fakten → CLAUDE.md, Prozeduren → Skill.</strong> Eine
+  aufgeblähte CLAUDE.md ist eine Dauersteuer auf jede einzelne Anfrage; ein Skill kostet nur,
+  wenn er gebraucht wird.
+</p>
+
+<h3>Subagents</h3>
+<p>
+  Ein Subagent hat ein <em>eigenes</em> Kontextfenster. Eine breite Suche liest fünfzig
+  Dateien — im Hauptkontext wäre der danach voll; als Subagent kommt nur das Ergebnis zurück.
+  Die Recherche für diese Seite lief genau so: zwei Subagents parallel, zurück kamen zwei
+  Zusammenfassungen statt dutzender Doku-Seiten.
+</p>
+
+<h3>Permissions</h3>
+<pre><code>"allow": ["Bash(git status:*)"]        // Lesen: keine Rückfrage
+"ask":   ["Bash(git push:*)"]         // Wirkung nach außen: fragen
+"deny":  ["Bash(git push --force:*)"] // Unumkehrbar: nie</code></pre>
+<p>
+  Der Sinn ist nicht Bequemlichkeit. Wer alles durchwinkt, liest die Rückfragen irgendwann
+  nicht mehr — und übersieht die eine, die zählte. Rückfragen sparsam einsetzen heißt, dass
+  sie wieder Signal tragen.
+</p>
+
+<h3>Hooks</h3>
+<p>
+  Hooks führt die Umgebung aus, nicht das Modell. Das ist der Unterschied zwischen „soll immer
+  passieren“ und „passiert immer“: <strong>Eine Bitte kann übersehen werden. Ein Hook
+  nicht.</strong> Was verlässlich gelten muss, gehört dorthin — nicht in eine Anweisung.
+</p>
+
+<div class="key">
+  <p><strong>Die Kernidee.</strong> Kontext ist endlich. Lade Fakten immer
+  (<code>CLAUDE.md</code>), Prozeduren bei Bedarf (Skills), lagere Breitensuche aus
+  (Subagents), erzwinge Unverzichtbares deterministisch (Hooks).</p>
+  <p style="margin-top:12px">Das gilt unabhängig von Version und Projekt — und ist der
+  eigentliche Ertrag dieser Übung.</p>
+</div>
+
+<h2>Was hängen bleiben soll</h2>
+<ul>
+  <li><strong>Ein grüner Haken ist kein Beweis.</strong> Nur die aufgerufene URL ist einer.</li>
+  <li><strong>Versionsnummern nachschlagen, nicht erinnern.</strong> Auch offizielle Doku veraltet.</li>
+  <li><strong>Was committet ist, ist fast immer rettbar.</strong> Was nie committet wurde, nicht.</li>
+  <li><strong>Das <em>Warum</em> steht nirgends.</strong> Was gemacht wurde, zeigt die Git-Historie.
+      Warum es so entschieden wurde, muss man aufschreiben — sonst ist es weg.</li>
+</ul>
+
+<footer>
+  Lernprojekt <code>edu</code> · statisches HTML, kein Build-Schritt ·
+  deployt via GitHub Actions aus <code>site/</code> ·
+  Langfassung im Repo unter <code>docs/</code>
+</footer>
+
+</div>
+</body>
+</html>
