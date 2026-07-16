@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code: Kontext ist endlich — edu</title>
+<meta name="description" content="Die Bausteine von Claude Code — CLAUDE.md, Skills, Subagents, Hooks — und der eine Gedanke, der sie alle erklärt.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="back" href="index.html">← Übersicht</a>
+  <p class="kicker">Claude Code</p>
+  <h1>Kontext ist endlich</h1>
+  <p class="lede">
+    Fast jede Design-Entscheidung in Claude Code lässt sich auf einen einzigen Satz
+    zurückführen. Wer ihn verstanden hat, trifft die Konfigurationsentscheidungen von selbst
+    richtig.
+  </p>
+</header>
+
+<h2>Das Grundproblem</h2>
+
+<p>
+  Das Kontextfenster ist der Arbeitsspeicher: alles, was Claude gerade sieht. Es ist begrenzt,
+  und <strong>alles darin kostet — bei jeder einzelnen Anfrage neu</strong>.
+</p>
+
+<p>
+  Daraus folgt die Frage, die jeden Baustein unten erklärt:
+  <em>Muss das immer geladen sein, oder nur, wenn es gebraucht wird?</em>
+</p>
+
+<div class="tbl">
+<table>
+  <tr><th>Baustein</th><th>Wann geladen</th><th>Wofür</th></tr>
+  <tr><td><code>CLAUDE.md</code></td><td><strong>immer</strong></td><td>Fakten übers Projekt</td></tr>
+  <tr><td>Skills</td><td>nur bei Bedarf</td><td>Prozeduren</td></tr>
+  <tr><td>Slash-Commands</td><td>bei Aufruf</td><td>Abkürzungen</td></tr>
+  <tr><td>Subagents</td><td>eigener Kontext</td><td>Teilaufgaben auslagern</td></tr>
+  <tr><td>Hooks</td><td>Automatik</td><td>Determinismus erzwingen</td></tr>
+</table>
+</div>
+
+<h2>CLAUDE.md — die Projekt-Fakten</h2>
+
+<p>Wird bei <strong>jeder</strong> Anfrage mitgeladen. Mehrere Ebenen greifen zusammen:</p>
+
+<div class="tbl">
+<table>
+  <tr><th>Datei</th><th>Gilt für</th><th>Committet?</th></tr>
+  <tr><td><code>~/.claude/CLAUDE.md</code></td><td>dich, überall</td><td>nein (liegt außerhalb)</td></tr>
+  <tr><td><code>&lt;projekt&gt;/CLAUDE.md</code></td><td>alle im Repo</td><td><strong>ja</strong></td></tr>
+  <tr><td><code>&lt;projekt&gt;/CLAUDE.local.md</code></td><td>nur dich, dies Repo</td><td>nein (auto-ignoriert)</td></tr>
+</table>
+</div>
+
+<p>
+  <strong>Hinein gehört:</strong> Build-Befehle, Konventionen, Fallstricke.
+  <strong>Nicht hinein:</strong> mehrstufige Prozeduren (→ Skills), und nichts, was aus dem
+  Code selbst ablesbar ist.
+</p>
+
+<div class="note">
+  <p>Faustregel: <strong>unter ~200 Zeilen.</strong> Eine aufgeblähte CLAUDE.md ist eine
+  Dauersteuer auf jede Anfrage, die du je stellst. Das ist auch der Grund, Regeln <em>nicht</em>
+  vorsorglich zu sammeln: Zu früh gesetzte Regeln werden später ignoriert — und ignorierte
+  Regeln untergraben das Vertrauen in alle anderen.</p>
+</div>
+
+<h2>Permissions — was ohne Rückfrage laufen darf</h2>
+
+<div class="tbl">
+<table>
+  <tr><th>Datei</th><th>Gilt für</th><th>Committen?</th></tr>
+  <tr><td><code>~/.claude/settings.json</code></td><td>dich, alle Projekte</td><td>–</td></tr>
+  <tr><td><code>.claude/settings.json</code></td><td><strong>alle im Repo</strong></td><td><strong>ja</strong></td></tr>
+  <tr><td><code>.claude/settings.local.json</code></td><td>nur dich, dies Repo</td><td><strong>nein</strong></td></tr>
+</table>
+</div>
+
+<p>Vorrang: local → project → user. Drei Listen, und die Aufteilung ist die eigentliche Lehre:</p>
+
+<pre><code>"allow": ["Bash(git status:*)"]        // Lesen: keine Rückfrage
+"ask":   ["Bash(git push:*)"]         // Wirkung nach außen: fragen
+"deny":  ["Bash(git push --force:*)"] // Unumkehrbar: nie</code></pre>
+
+<div class="key">
+  <p><strong>allow</strong> fürs Lesen · <strong>ask</strong> für Wirkung nach außen ·
+  <strong>deny</strong> für Unumkehrbares</p>
+</div>
+
+<p>
+  Der Sinn ist nicht Bequemlichkeit. Wer alles durchwinkt, liest die Rückfragen irgendwann
+  nicht mehr — und übersieht die eine, die zählte. Rückfragen sparsam einsetzen heißt, dass
+  sie wieder Signal tragen.
+</p>
+
+<h3>Permission-Modi (Shift+Tab wechselt)</h3>
+<ul>
+  <li><code>default</code> — fragt bei Edits und Shell-Befehlen</li>
+  <li><code>plan</code> — <strong>nur lesen</strong>, keine Änderungen</li>
+  <li><code>acceptEdits</code> — Datei-Edits ohne Rückfrage</li>
+  <li><code>bypassPermissions</code> — keine Rückfragen. Nur in Container/Sandbox vertretbar</li>
+</ul>
+<p>
+  <code>plan</code> ist der unterschätzteste: erst verstehen lassen, dann bauen. Fehler im
+  Plan sind billig, Fehler im Code teuer.
+</p>
+
+<h2>Skills — Prozeduren, die nur bei Bedarf laden</h2>
+
+<p>
+  <code>.claude/skills/&lt;name&gt;/SKILL.md</code> (Projekt) oder <code>~/.claude/skills/</code>
+  (überall).
+</p>
+
+<div class="key">
+  <p><strong>Fakten → CLAUDE.md. Prozeduren → Skill.</strong></p>
+</div>
+
+<p>
+  Das ist der ganze Unterschied: CLAUDE.md ist <em>immer</em> geladen. Ein Skill nur, wenn er
+  relevant ist — er darf deshalb ausführlich sein, ohne zu kosten. Das
+  <code>description</code>-Feld ist kein Kommentar, sondern der Auslöser: Es entscheidet, ob
+  Claude den Skill überhaupt findet.
+</p>
+
+<h2>Subagents — eigener Kontext für Teilaufgaben</h2>
+
+<p>
+  <code>.claude/agents/&lt;name&gt;.md</code> — eine <strong>flache Datei</strong>, nicht
+  <code>&lt;name&gt;/AGENT.md</code>.
+</p>
+
+<pre><code>---
+name: quick-reviewer          # PFLICHT: kleingeschrieben, Bindestriche
+description: Scans code and suggests readability improvements   # PFLICHT: der Auslöser
+tools: Read, Grep             # optional — hier: lesen, nicht schreiben
+model: haiku                  # optional
+---
+
+You are a code improvement specialist. For each issue, explain the
+problem and show an improved version. Keep feedback concise.</code></pre>
+
+<p>
+  Der Markdown-Body ist der System-Prompt. Aufruf: automatisch (Claude entscheidet per
+  <code>description</code>), per Nennung im Prompt, oder garantiert per
+  <code>@agent-&lt;name&gt;</code>.
+</p>
+
+<p>
+  <strong>Warum das nützt:</strong> Ein Subagent hat ein <em>eigenes</em> Kontextfenster. Eine
+  breite Suche liest fünfzig Dateien — im Hauptkontext wäre der danach voll. Als Subagent
+  kommt nur das Ergebnis zurück.
+</p>
+
+<div class="note">
+  <p>Die Recherche für diese Notizen lief genau so: mehrere Subagents parallel für
+  Claude-Code-Doku, GitHub-Pages-Doku und Nutzungsbedingungen. Zurück kamen
+  Zusammenfassungen statt dutzender Doku-Seiten. Ein Subagent fand dabei auch den Fehler
+  eines anderen: Das Agent-Format war <em>nicht</em> <code>&lt;name&gt;/AGENT.md</code>, wie
+  zunächst vermutet.</p>
+</div>
+
+<h2>Hooks — Automatik, die nicht vergessen wird</h2>
+
+<p>
+  In <code>settings.json</code> unter <code>"hooks"</code>. Der entscheidende Punkt:
+  <strong>Die Umgebung führt sie aus, nicht das Modell.</strong>
+</p>
+
+<p>
+  Events u. a.: <code>SessionStart</code>, <code>UserPromptSubmit</code>,
+  <code>PreToolUse</code> (kann blockieren), <code>PostToolUse</code>, <code>Stop</code>,
+  <code>PreCompact</code>.
+</p>
+
+<div class="key">
+  <p><strong>Eine Bitte kann übersehen werden. Ein Hook nicht.</strong></p>
+</div>
+
+<p>
+  Was wirklich immer gelten muss, gehört deshalb in einen Hook — nicht in eine Anweisung.
+  Typisch: Formatter nach jedem Edit, Kontext beim Sitzungsstart laden, geschützte Dateien
+  blocken.
+</p>
+
+<h2>Kontext-Management</h2>
+
+<ul>
+  <li><code>/context</code> — Auslastung ansehen. Bei Trägheit zuerst hier schauen</li>
+  <li><code>/compact [fokus]</code> — Verlauf zusammenfassen, Platz schaffen</li>
+  <li><code>/clear</code> — frische Session. CLAUDE.md bleibt, Verlauf ist weg</li>
+  <li>Auto-Compact ab ca. 85 % Auslastung</li>
+</ul>
+
+<p>
+  Faustregel: <strong>Neue Aufgabe → <code>/clear</code>.</strong> Kontext aus einer erledigten
+  Aufgabe hilft der nächsten nicht, kostet aber weiter.
+</p>
+
+<h2>Was die Sitzung überlebt — und was nicht</h2>
+
+<p>
+  <code>/clear</code>, Compaction und ein Rechnerausfall haben dieselbe Wirkung, nur in
+  unterschiedlichem Tempo:
+</p>
+
+<div class="key">
+  <p><strong>Die Konversation ist kein Asset. Sie ist Arbeitsspeicher.</strong></p>
+  <p style="margin-top:12px">
+    Wissen, das nur im Chat existiert, ist bereits verloren — nicht erst beim
+    Festplattentod, sondern beim nächsten <code>/clear</code>. Der Crash macht nur schlagartig
+    sichtbar, was ohnehin ständig passiert.
+  </p>
+</div>
+
+<p>
+  Deshalb <code>CLAUDE.md</code>. Deshalb <code>docs/</code>. Deshalb ausführliche
+  Commit-Messages. Nicht aus Ordnungsliebe — sondern weil das die einzigen Orte sind, an
+  denen Wissen die Sitzung überlebt.
+</p>
+
+<p>
+  Für den Arbeitsstand zwischen Sitzungen: <code>.claude/progress.md</code>, per
+  <code>SessionStart</code>-Hook eingespeist. Zwei Zonen — Kopf (wird überschrieben: Ziel,
+  Stand, nächste Schritte) und Verlauf (nur anhängen: <em>was</em> und <em>warum so</em>).
+  Das <em>Warum</em> ist der eigentliche Wert: Was gemacht wurde, steht in der Git-Historie.
+  Warum es so entschieden wurde, steht sonst nirgends.
+</p>
+
+<h2>Terminal vs. IDE</h2>
+
+<div class="tbl">
+<table>
+  <tr><th></th><th>Terminal</th><th>VS-Code-Extension</th></tr>
+  <tr><td>Diff-Ansicht</td><td>–</td><td>✓ nativ</td></tr>
+  <tr><td>Selection-Kontext</td><td>–</td><td>✓ <code>Alt+K</code></td></tr>
+  <tr><td><code>!befehl</code> direkt</td><td>✓</td><td>–</td></tr>
+  <tr><td>Tab-Completion</td><td>✓</td><td>–</td></tr>
+</table>
+</div>
+
+<p>
+  <code>!befehl</code> im Terminal führt ihn aus und legt die Ausgabe in den Chat — ideal für
+  Interaktives wie <code>gh auth login</code>, das Claude nicht selbst bedienen kann.
+</p>
+
+<h2>Wo Claude arbeitet</h2>
+
+<div class="flow">
+<pre>Projektordner\        ← hier wird gearbeitet. Hier ist die Versionierung.
+    .git\             ← komplette Historie, lokal
+        │
+        │  push  ↓↑  pull
+        ▼
+   github.com/...     ← eine Kopie. Backup, Sync, CI, Hosting.</pre>
+</div>
+
+<p>
+  Claude Code arbeitet an den Dateien <strong>auf der Platte</strong>, nicht „auf GitHub“.
+  Änderungen im Browser oder von einem anderen Rechner sind unsichtbar, bis jemand
+  <code>git pull</code> macht — die klassische Quelle für „aber ich hab das doch geändert?!“.
+  (Claude Code in der Cloud arbeitet anders: dort auf einer Kopie des Repos.)
+</p>
+
+<div class="key">
+  <p><strong>Die Kernidee.</strong> Kontext ist endlich. Lade Fakten immer
+  (<code>CLAUDE.md</code>), Prozeduren bei Bedarf (Skills), lagere Breitensuche aus
+  (Subagents), erzwinge Unverzichtbares deterministisch (Hooks).</p>
+  <p style="margin-top:12px">Das gilt unabhängig von Version und Projekt.</p>
+</div>
+
+<footer>
+  Langfassung im Repo unter <code>docs/claude-code/</code> ·
+  <a href="index.html">zurück zur Übersicht</a>
+</footer>
+
+</div>
+</body>
+</html>
