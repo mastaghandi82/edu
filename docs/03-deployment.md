@@ -133,12 +133,37 @@ Max. eine User-Site pro Account, max. eine Pages-Site pro Repo.
 ## Läufe beobachten
 
 ```bash
-gh run watch              # laufenden Job live im Terminal
 gh run list               # letzte Läufe + Status
+gh run watch <run-id>     # laufenden Job live verfolgen
 gh run view --log-failed  # NUR die fehlgeschlagenen Schritte
 ```
 
 `--log-failed` ist der Zeitsparer: CI-Logs sind tausende Zeilen, davon interessieren fünf.
+
+### `gh run watch` braucht eine ID, sobald kein Mensch zusieht
+
+Am Terminal genügt `gh run watch` — es fragt, welchen Lauf man meint. In einem Skript, einer
+Pipeline oder einem Agenten-Aufruf gibt es niemanden, der antwortet:
+
+```
+run ID required when not running interactively
+```
+
+Die ID also selbst besorgen:
+
+```bash
+RID=$(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run watch "$RID" --exit-status --compact
+```
+
+- `--exit-status` — Exit-Code ≠ 0 bei rotem Lauf. **Ohne das schlägt ein fehlgeschlagenes
+  Deployment im Skript nicht fehl** — der Befehl endet zufrieden, obwohl nichts deployt wurde.
+- `--compact` — nur relevante und fehlgeschlagene Schritte.
+
+Das verallgemeinert sich: **CLI-Werkzeuge verhalten sich anders, sobald kein Mensch am
+Terminal sitzt.** Sie erkennen das (TTY-Prüfung) und lassen Rückfragen weg — oder verweigern
+den Dienst. Wer Befehle interaktiv testet und dann in ein Skript kopiert, läuft genau hier
+auf. Dieselbe Klasse Problem: `git rebase -i`, `gh auth login`, jedes `--interactive`.
 
 ## Typische Fehlerbilder
 
