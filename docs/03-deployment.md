@@ -149,16 +149,31 @@ Pipeline oder einem Agenten-Aufruf gibt es niemanden, der antwortet:
 run ID required when not running interactively
 ```
 
-Die ID also selbst besorgen:
+Die ID also selbst besorgen — und zwar die des **eigenen** Commits:
 
 ```bash
-RID=$(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')
+RID=$(gh run list --commit "$(git rev-parse HEAD)" --limit 1 \
+        --json databaseId --jq '.[0].databaseId')
+
+# Leer heisst: noch kein Lauf registriert (GitHub braucht ein paar Sekunden).
+# Ohne diese Pruefung laeuft "gh run watch" in ein nichtssagendes 404.
+[ -n "$RID" ] || { echo "Kein Lauf fuer diesen Commit gefunden." >&2; exit 1; }
+
 gh run watch "$RID" --exit-status --compact
 ```
 
 - `--exit-status` — Exit-Code ≠ 0 bei rotem Lauf. **Ohne das schlägt ein fehlgeschlagenes
   Deployment im Skript nicht fehl** — der Befehl endet zufrieden, obwohl nichts deployt wurde.
 - `--compact` — nur relevante und fehlgeschlagene Schritte.
+- `--commit` — ohne diese Einschränkung liefert `--limit 1` den *neuesten* Lauf, nicht
+  zwingend den *eigenen*. Pusht jemand parallel, beobachtet man fremde Arbeit und bekommt
+  grünes Licht für ein Deployment, das gar nicht das eigene war.
+
+**Falle im Detail:** `--commit` verlangt den **vollen** SHA. Mit einem Kurz-SHA
+(`--commit 3606f81`) gibt es *keinen Fehler*, sondern eine **leere Antwort** — der
+tückischere Fall, weil nichts nach Problem aussieht. `git rev-parse HEAD` liefert den vollen
+SHA; wer den Wert von Hand einsetzt, tappt hinein. Merksatz: **Ein leeres Ergebnis ist kein
+Beweis für „nichts da“ — es kann auch eine falsch gestellte Frage sein.**
 
 Das verallgemeinert sich: **CLI-Werkzeuge verhalten sich anders, sobald kein Mensch am
 Terminal sitzt.** Sie erkennen das (TTY-Prüfung) und lassen Rückfragen weg — oder verweigern
