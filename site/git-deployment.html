@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Von der lokalen Datei zur Live-URL — edu</title>
+<meta name="description" content="Was zwischen git init und einer öffentlich erreichbaren Adresse passiert. Notizen aus dem ersten eigenen Durchlauf.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="back" href="index.html">← Übersicht</a>
+  <p class="kicker">Git &amp; Deployment</p>
+  <h1>Von der lokalen Datei zur Live-URL</h1>
+  <p class="lede">
+    Was zwischen <code>git init</code> und einer öffentlich erreichbaren Adresse passiert.
+    Aufgeschrieben beim ersten eigenen Durchlauf — inklusive der Stellen, an denen es hakte.
+  </p>
+</header>
+
+<div class="note">
+  <p><strong>Diese Seite dokumentiert den Prozess, mit dem sie selbst veröffentlicht wird.</strong>
+  Jede Änderung an dieser Datei löst genau die Kette aus, die hier beschrieben steht. Die Doku
+  kann damit nicht veralten, ohne dass es auffällt — sie ist der Testfall.</p>
+</div>
+
+<h2>Die Kette</h2>
+
+<div class="flow">
+<pre>git push origin main
+  │
+  └─▸ GitHub Actions startet eine frische Ubuntu-VM
+        │
+        ├─▸ checkout ............ Repo holen
+        ├─▸ upload-artifact ..... Ordner site/ einpacken
+        └─▸ deploy-pages ........ veröffentlichen
+              │
+              └─▸ https://mastaghandi82.github.io/edu/</pre>
+</div>
+
+<p>
+  Niemand lädt Dateien irgendwohin. Ein Push ist der einzige Auslöser. Der Wert liegt in der
+  Reproduzierbarkeit: Die VM ist jedes Mal neu und leer. Es gibt kein „läuft bei mir“ — was
+  nicht im Repo steht, existiert nicht. Eine vergessene lokale Datei wird so sofort zum
+  sichtbaren Fehler statt zur stillen Zeitbombe.
+</p>
+
+<h2>Git in einem Bild</h2>
+
+<div class="flow">
+<pre>Working Directory  ──add──▸  Staging Area  ──commit──▸  Repository
+(deine Dateien)              (Vormerkung)               (Schnappschuss)</pre>
+</div>
+
+<p>
+  Die <strong>Staging Area</strong> ist der Schritt, den andere Systeme nicht haben, und
+  zuerst wirkt er überflüssig. Sein Nutzen zeigt sich, sobald zehn Dateien geändert sind, aber
+  nur drei inhaltlich zusammengehören: <code>git add</code> nimmt gezielt diese drei. Ein
+  Commit soll <em>eine</em> Änderung sein — nicht „alles, was gerade rumlag“.
+</p>
+
+<p>
+  Und das Repository liegt <strong>vollständig lokal</strong>. Die Versionierung ist nach
+  <code>git init</code> sofort komplett da, ohne jeden Server. GitHub ist nur eine Kopie —
+  für Backup, Zusammenarbeit, CI und Hosting. Das ist gemeint, wenn Git „verteilt“ genannt
+  wird.
+</p>
+
+<h2>Vier Fallen beim ersten Mal</h2>
+
+<h3>1. Der Branch heißt <code>master</code></h3>
+<p>
+  <code>git init</code> ohne Argument nennt den ersten Branch <code>master</code>. Der
+  Deploy-Workflow lauscht aber auf <code>main</code>. Folge: kein Fehler, keine Meldung — es
+  passiert einfach nichts.
+</p>
+<pre><code>git init -b main
+git config --global init.defaultBranch main   # ein für alle Mal</code></pre>
+
+<h3>2. Die E-Mail landet öffentlich in jedem Commit</h3>
+<p>
+  Autor-Name und E-Mail stehen dauerhaft in der Historie; in einem öffentlichen Repo lesen
+  Crawler sie aus. GitHub stellt dafür eine <code>noreply</code>-Adresse bereit — die
+  Zuordnung zum Account funktioniert trotzdem, sie läuft über die Adresse, nicht den Namen.
+</p>
+<pre><code>git config --global user.email "&lt;id&gt;+&lt;user&gt;@users.noreply.github.com"
+# eigene ID:  gh api user --jq .id</code></pre>
+
+<h3>3. Der <code>workflow</code>-Scope fehlt</h3>
+<p>
+  Ohne ihn verweigert GitHub das Pushen von Dateien unter <code>.github/workflows/</code> —
+  mit einer Meldung, die nicht danach klingt. <code>gh auth login</code> setzt ihn mit.
+</p>
+
+<h3>4. Grüner Workflow, trotzdem 404</h3>
+<div class="warn">
+  <p><strong>Die häufigste Falle überhaupt.</strong> Der Workflow im Repo aktiviert GitHub
+  Pages <em>nicht</em>. Die Quelle muss einmalig im Browser umgestellt werden:
+  <code>Settings → Pages → Build and deployment → Source → GitHub Actions</code>.</p>
+  <p>Deshalb ist ein grüner Haken <em>kein</em> Beweis. Nur die aufgerufene URL ist einer.</p>
+</div>
+
+<h2>Ignorieren: zwei Wege, ein Unterschied</h2>
+
+<div class="tbl">
+<table>
+  <tr><th></th><th><code>.gitignore</code></th><th><code>.git/info/exclude</code></th></tr>
+  <tr><td>Wird committet</td><td><strong>ja</strong></td><td><strong>nie</strong></td></tr>
+  <tr><td>Aussage</td><td>„gehört in <em>niemandes</em> Repo“</td><td>„will <em>ich</em> hier nicht sehen“</td></tr>
+  <tr><td>Beispiel</td><td><code>node_modules/</code>, <code>.env</code></td><td>eigene Notizen</td></tr>
+</table>
+</div>
+
+<p>
+  Prüfen, <em>warum</em> etwas ignoriert wird — die Ausgabe nennt Datei und Zeile der Regel:
+</p>
+<pre><code>git check-ignore -v .claude/progress.md
+# .git/info/exclude:9:.claude/progress.md</code></pre>
+
+<div class="warn">
+  <p>Ignorieren wirkt nur auf <strong>noch nie committete</strong> Dateien. Was einmal drin
+  war, bleibt drin — die Regel kommt zu spät. Deshalb <code>.gitignore</code> vor dem ersten
+  Commit anlegen. Bei versehentlich committeten Secrets reicht Löschen nicht: Sie stehen in
+  der Historie und sind als kompromittiert zu behandeln.</p>
+</div>
+
+<h3>Bei Secrets: Allowlist statt Denylist</h3>
+<p>
+  Wenn in einem Verzeichnis etwas Geheimes liegt, ist die Denylist die falsche Richtung.
+  Nicht auflisten, was raus soll — auflisten, was rein darf:
+</p>
+<pre><code># Alles raus...
+*
+# ...gezielt rein.
+!.gitignore
+!CLAUDE.md
+!config/
+!config/**</code></pre>
+<p>
+  Der Unterschied ist Sicherheit, nicht Geschmack: Bei einer Denylist ist jede künftige Datei
+  standardmäßig <strong>drin</strong> — ein Update legt einen neuen Token-Cache an, und er
+  wird stillschweigend mitcommittet. Bei einer Allowlist ist alles Neue standardmäßig
+  <strong>draußen</strong>. <strong>Bei Secrets ist die Default-Antwort „nein“.</strong>
+</p>
+
+<h2>Der Workflow</h2>
+
+<pre><code>on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read      # checkout darf lesen
+  pages: write        # darf deployen
+  id-token: write     # darf ein OIDC-Token anfordern
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false</code></pre>
+
+<p>
+  Der <code>permissions</code>-Block <strong>ersetzt die Standardrechte vollständig</strong> —
+  der Job kann nur, was dort steht. <code>id-token</code> ist das unintuitivste: Damit fordert
+  der Lauf ein kurzlebiges Token an, mit dem Pages prüft, dass das Deployment aus legitimer
+  Quelle stammt. Kein dauerhaftes Secret im Spiel.
+</p>
+<p>
+  <code>cancel-in-progress: false</code> ist bewusst gewählt: Ein <em>laufendes</em> Deployment
+  wird nie abgebrochen. Bei CI-Tests wäre <code>true</code> richtig — veraltete Läufe
+  abwürgen spart Zeit. Ein abgebrochener Produktiv-Deploy hinterlässt dagegen womöglich einen
+  halben Stand.
+</p>
+
+<div class="warn">
+  <p><strong>Versionsnummern nachschlagen, nicht erinnern.</strong> Aktuell sind
+  <code>checkout@v7</code>, <code>configure-pages@v6</code>,
+  <code>upload-pages-artifact@v5</code>, <code>deploy-pages@v5</code> — gegen die GitHub-API
+  geprüft. Kurios: GitHubs <em>eigene</em> Starter-Vorlage zeigt noch einen älteren Mix. Auch
+  offizielle Doku veraltet.</p>
+</div>
+
+<h2>Läufe beobachten — und die TTY-Falle</h2>
+
+<p>
+  Am Terminal genügt <code>gh run watch</code>. In einem Skript nicht:
+</p>
+<pre><code>run ID required when not running interactively</code></pre>
+<p>
+  Der Befehl fragt sonst interaktiv nach, welcher Lauf gemeint ist — in einer Pipeline
+  antwortet niemand. Die ID also selbst besorgen, und zwar die des <em>eigenen</em> Commits:
+</p>
+<pre><code>RID=$(gh run list --commit "$(git rev-parse HEAD)" --limit 1 \
+        --json databaseId --jq '.[0].databaseId')
+[ -n "$RID" ] || { echo "Kein Lauf gefunden." >&2; exit 1; }
+gh run watch "$RID" --exit-status --compact</code></pre>
+<p>
+  <code>--exit-status</code> ist nicht optional: <strong>Ohne das meldet ein roter Lauf im
+  Skript Erfolg.</strong> Und ohne <code>--commit</code> nimmt <code>--limit 1</code> den
+  neuesten Lauf im Repo — bei parallelen Pushes also fremde Arbeit.
+</p>
+
+<div class="warn">
+  <p><strong>Die tückischere Falle steckt im Fix:</strong> <code>--commit</code> verlangt den
+  <em>vollen</em> SHA. Mit einem Kurz-SHA gibt es <em>keinen Fehler</em>, sondern eine
+  <strong>leere Antwort</strong> — und <code>gh run watch ""</code> läuft in ein
+  nichtssagendes 404. Merksatz: <strong>Ein leeres Ergebnis ist kein Beweis für „nichts da“ —
+  es kann auch eine falsch gestellte Frage sein.</strong></p>
+</div>
+
+<p>
+  Das verallgemeinert sich: <strong>CLI-Werkzeuge verhalten sich anders, sobald kein Mensch am
+  Terminal sitzt.</strong> Wer Befehle interaktiv testet und dann in ein Skript kopiert, läuft
+  genau hier auf. Dieselbe Klasse: <code>git rebase -i</code>, <code>gh auth login</code>,
+  jedes <code>--interactive</code>.
+</p>
+
+<h2>Der PR-Zyklus — und warum er kein Formular ist</h2>
+
+<div class="flow">
+<pre>git switch -c thema     →  Branch: hier darf es kaputt sein
+git commit              →  festschreiben
+git push -u origin ...  →  hochladen
+gh pr create            →  zur Prüfung stellen
+[ Review durch jemand anderen ]
+merge                   →  löst automatisch den Deploy aus</pre>
+</div>
+
+<p>
+  Warum ein Branch statt direkt auf <code>main</code>? Weil <code>main</code> jederzeit
+  deploybar bleiben muss — hier sogar wörtlich: Jeder Push auf <code>main</code> geht live.
+</p>
+
+<div class="note">
+  <p><strong>Der lehrreichste Moment des ersten Durchlaufs war ein blockierter Merge.</strong>
+  Dieselbe Instanz hatte den PR geschrieben, sich selbst reviewt und wollte sich selbst
+  durchwinken — eine Schutzschicht verweigerte das. Zu Recht: Genau das soll ein PR
+  verhindern.</p>
+  <p>Ein Pull Request ist ein <em>sozialer</em> Mechanismus, kein technischer. Sein Wert kommt
+  aus dem zweiten Augenpaar. <strong>Automatisierung darf den Kontrollpunkt nicht
+  mit-automatisieren</strong> — wer schreibt, prüft und freigibt, dessen Prüfung ist Theater.</p>
+</div>
+
+<h2>Was hängen bleiben soll</h2>
+<ul>
+  <li><strong>Ein grüner Haken ist kein Beweis.</strong> Nur die aufgerufene URL ist einer.</li>
+  <li><strong>Versionsnummern nachschlagen, nicht erinnern.</strong> Auch offizielle Doku veraltet.</li>
+  <li><strong>Was committet ist, ist fast immer rettbar.</strong> Was nie committet wurde, nicht.</li>
+  <li><strong>Bei Secrets ist die Default-Antwort „nein“.</strong> Denylists vergessen, Allowlists nicht.</li>
+  <li><strong>Das <em>Warum</em> steht nirgends.</strong> Was gemacht wurde, zeigt der Diff.
+      Warum es so entschieden wurde, muss in die Commit-Message — sonst ist es weg.</li>
+</ul>
+
+<footer>
+  Langfassung im Repo unter <code>docs/git/</code> ·
+  <a href="index.html">zurück zur Übersicht</a>
+</footer>
+
+</div>
+</body>
+</html>
