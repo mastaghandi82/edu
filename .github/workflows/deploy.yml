@@ -1,0 +1,43 @@
+name: Deploy static content to Pages
+
+on:
+  # Jeder Push auf main veroeffentlicht - main ist damit immer live.
+  push:
+    branches: [main]
+  # Erlaubt zusaetzlich manuelles Ausloesen ueber den Actions-Tab.
+  workflow_dispatch:
+
+# Ersetzt die Standardrechte vollstaendig (Least Privilege):
+permissions:
+  contents: read # checkout darf das Repo lesen
+  pages: write # darf auf Pages deployen
+  id-token: write # darf ein kurzlebiges OIDC-Token anfordern
+
+# Nur ein Deployment gleichzeitig. cancel-in-progress bewusst auf false:
+# ein laufendes Produktiv-Deploy soll nie mittendrin abgebrochen werden.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          # Nur site/ geht live - docs/ und CLAUDE.md bleiben unveroeffentlicht.
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
