@@ -123,6 +123,13 @@ disable-model-invocation: true
 > `.claude/skills/deploy-check/SKILL.md` verifiziert Deployments nach den Regeln aus
 > `docs/git/02-deployment.md`. Er wendet an, was diese Seite beschreibt: Trigger-Wörter in
 > der description, `allowed-tools` für die Lesebefehle, Fallen-Tabelle im Body.
+>
+> Sein erster Ernstfall — die Verifikation seines eigenen Deployments — lieferte prompt
+> zwei neue Fallen (unten in der Tabelle): Die Cloud-Session hatte weder `gh` noch freien
+> Netzzugang. Der Skill funktionierte trotzdem, weil seine Schritte das *Ziel* nennen
+> („den eigenen Lauf finden"), nicht nur das Werkzeug — die Prozedur ließ sich auf die
+> GitHub-API-Tools übertragen. Die Live-Prüfung blieb offen und wurde ausdrücklich so
+> gemeldet, statt den grünen Lauf als Beweis auszugeben.
 
 ## Das Frontmatter: die wichtigsten Felder
 
@@ -220,6 +227,8 @@ bewährt hat:
 | Beschreibungen abgeschnitten | zu viele Skills fürs 1-%-Budget | `/doctor` prüfen; selten Genutztes deaktivieren |
 | `` !`cmd` `` läuft nicht | `!` nicht am Zeilen-/Wortanfang | Position korrigieren |
 | Skill „vergessen" nach langer Session | Compaction hat gekürzt | Skill einfach neu aufrufen |
+| Skill nennt Werkzeuge, die die Umgebung nicht hat | lokal geschrieben, in Cloud/Sandbox ausgeführt (kein `gh`, kein freier Netzzugang) | Schritte ums *Ziel* formulieren, Befehl als Standardweg — dann ist der Ausweichweg erlaubt |
+| Verifikationsschritt scheitert mit 403/Timeout | Sandbox-Netzwerk-Policy, nicht das Deployment | Ursache trennen (Proxy-Status prüfen); Offenes offen melden statt grün = fertig |
 
 Und der klassische Denkfehler, gegen den diese Seite anschreibt: **alles in die CLAUDE.md
 kippen.** Wenn Claude eine Regel ignoriert, ist die CLAUDE.md meist zu lang — die Antwort

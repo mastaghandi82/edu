@@ -12,6 +12,10 @@ Ein Deployment gilt erst als erfolgreich, wenn die **Live-URL die Änderung zeig
 Ein grüner Actions-Lauf allein reicht nicht (Klassiker: Workflow grün, Seite 404,
 weil die Pages-Quelle nicht auf "GitHub Actions" steht).
 
+Die `gh`-Befehle unten sind der Standardweg. In Umgebungen ohne `gh` (z. B. Claude Code
+in der Cloud) dasselbe Ziel über die GitHub-API-Tools erreichen: Läufe listen, den
+eigenen per SHA identifizieren, Status abfragen.
+
 Falls ein Commit-SHA übergeben wurde, gilt der: $ARGUMENTS
 
 ## Schritte
@@ -61,3 +65,5 @@ Falls ein Commit-SHA übergeben wurde, gilt der: $ARGUMENTS
 | `gh run watch` hängt/scheitert | ohne TTY keine interaktive Auswahl — ID mitgeben |
 | falscher Lauf beobachtet | neuesten statt eigenen Lauf genommen — SHA vergleichen |
 | Änderung nicht sichtbar | Pages-Cache — kurz warten, dann erst als Fehler werten |
+| `curl` auf Live-URL gibt 403 | Sandbox-Netzwerk-Policy blockt den Ausgang — kein Deploy-Fehler. Erst Proxy-Status prüfen, dann die Live-Prüfung ausdrücklich als offen melden und im Browser außerhalb erledigen lassen |
+| `gh` nicht vorhanden | Cloud-/CI-Umgebung — GitHub-API-Tools nutzen (siehe oben) |
