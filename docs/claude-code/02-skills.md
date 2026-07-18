@@ -119,6 +119,11 @@ disable-model-invocation: true
    ein grüner Actions-Lauf allein reicht nicht.
 ```
 
+> **Lebendes Beispiel:** Dieses Repo enthält selbst einen Skill —
+> `.claude/skills/deploy-check/SKILL.md` verifiziert Deployments nach den Regeln aus
+> `docs/git/02-deployment.md`. Er wendet an, was diese Seite beschreibt: Trigger-Wörter in
+> der description, `allowed-tools` für die Lesebefehle, Fallen-Tabelle im Body.
+
 ## Das Frontmatter: die wichtigsten Felder
 
 Alle Felder sind optional — sogar `name` (Standard: der Verzeichnisname). Aber ohne
