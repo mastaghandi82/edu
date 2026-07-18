@@ -111,6 +111,9 @@ kosten.
 Ein Skill kann ein ganzes Verzeichnis sein (Hilfsskripte, Referenzdateien). Das `description`-
 Feld entscheidet, ob Claude ihn findet — es ist kein Kommentar, sondern der Auslöser.
 
+> **Vertiefung: `02-skills.md`.** Dort auch der aktuellere Stand: Slash-Commands (Abschnitt 3)
+> und Skills sind inzwischen zu *einem* System zusammengeführt.
+
 ## 5. Subagents — eigener Kontext für Teilaufgaben
 
 `.claude/agents/<name>.md` (Projekt) oder `~/.claude/agents/<name>.md` (überall).

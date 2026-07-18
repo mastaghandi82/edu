@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills: Aufgeschriebene Erfahrung mit Auslöser — edu</title>
+<meta name="description" content="Was Claude-Code-Skills sind, warum sie fast nichts kosten, und wie man welche schreibt, die wirklich feuern.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="back" href="index.html">← Übersicht</a>
+  <p class="kicker">Claude Code · Vertiefung</p>
+  <h1>Aufgeschriebene Erfahrung<br>mit einem Auslöser dran</h1>
+  <p class="lede">
+    Ein Skill ist eine Prozedur als Datei: Er lädt nur, wenn er gebraucht wird — und
+    genau das macht ihn zum Gegenstück der immer teuren CLAUDE.md.
+  </p>
+</header>
+
+<h2>Wofür Skills gut sind</h2>
+
+<p>
+  Wer Claude dreimal erklärt hat, wie in diesem Projekt deployt wird, schreibt es beim
+  vierten Mal als Skill auf. Ab dann kennt jede Session den Ablauf — auch die von
+  Kolleg:innen, denn Projekt-Skills werden committet. Das löst zwei Probleme auf einmal:
+  <strong>Wiederholung</strong> (die Erklärung existiert genau einmal) und
+  <strong>Kontextkosten</strong> (sie kostet nur, wenn sie gebraucht wird).
+</p>
+
+<div class="key">
+  <p><strong>Fakten → CLAUDE.md. Prozeduren → Skill.</strong></p>
+  <p style="margin-top:12px">
+    Konventionen, Build-Befehle, Eigenheiten: CLAUDE.md. Mehrstufige Abläufe, Checklisten,
+    Referenzmaterial, Workflows mit Nebenwirkungen: Skill.
+  </p>
+</div>
+
+<div class="note">
+  <p><strong>Stand der Dinge:</strong> Eigene Slash-Commands und Skills waren früher zwei
+  Mechanismen — inzwischen sind sie <em>ein</em> System. Beide erzeugen
+  <code>/&lt;name&gt;</code>; alte <code>.claude/commands/</code>-Dateien laufen weiter,
+  aber Skills sind der empfohlene Weg: ein ganzes Verzeichnis statt einer Datei, feinere
+  Steuerung, automatisches Laden. (Die Hauptseite zu Claude Code beschreibt noch den
+  älteren Stand mit zwei Bausteinen.)</p>
+</div>
+
+<h2>Die Kernmechanik: gestaffeltes Laden</h2>
+
+<p>
+  Der Grund, warum Skills fast nichts kosten, heißt <em>Progressive Disclosure</em> —
+  Wissen wird in Stufen sichtbar:
+</p>
+
+<div class="tbl">
+<table>
+  <tr><th>Stufe</th><th>Was ist im Kontext</th><th>Kosten</th></tr>
+  <tr><td>immer</td><td>nur <code>name</code> + <code>description</code></td><td>~100 Tokens pro Skill</td></tr>
+  <tr><td>beim Auslösen</td><td>der komplette Skill-Text</td><td>einmalig, bleibt für die Session</td></tr>
+  <tr><td>bei Bedarf</td><td>Zusatzdateien, Skripte</td><td>null, bis Claude sie liest</td></tr>
+</table>
+</div>
+
+<p>Das erklärt zwei Dinge sofort:</p>
+
+<ul>
+  <li><strong>Warum die <code>description</code> alles entscheidet.</strong> Sie ist das
+  Einzige, was Claude sieht, bevor der Skill geladen ist. Vage Beschreibung = ein Skill,
+  der nie feuert.</li>
+  <li><strong>Warum ein Skill ausführlich sein darf.</strong> Der Inhalt kostet erst beim
+  Auslösen — anders als jede Zeile CLAUDE.md, die eine Dauersteuer ist.</li>
+</ul>
+
+<h2>Wo Skills liegen</h2>
+
+<div class="tbl">
+<table>
+  <tr><th>Ebene</th><th>Pfad</th><th>Gilt für</th><th>Committen?</th></tr>
+  <tr><td>persönlich</td><td><code>~/.claude/skills/&lt;name&gt;/SKILL.md</code></td><td>dich, überall</td><td>nein</td></tr>
+  <tr><td>Projekt</td><td><code>.claude/skills/&lt;name&gt;/SKILL.md</code></td><td>alle im Repo</td><td><strong>ja</strong></td></tr>
+  <tr><td>Plugin</td><td><code>&lt;plugin&gt;/skills/&lt;name&gt;/SKILL.md</code></td><td>wo das Plugin aktiv ist</td><td>–</td></tr>
+</table>
+</div>
+
+<p>
+  Änderungen an einer <code>SKILL.md</code> wirken sofort, ohne Neustart. In Monorepos
+  werden auch <code>.claude/skills/</code> in Unterverzeichnissen gefunden.
+</p>
+
+<h2>Aufbau: ein Verzeichnis, eine Pflichtdatei</h2>
+
+<div class="flow">
+<pre>deploy/
+├── SKILL.md           ← Pflicht: Anleitung + Frontmatter
+├── reference.md       ← Detailwissen, erst bei Bedarf gelesen
+└── scripts/
+    └── check.sh       ← ausführbare Helfer</pre>
+</div>
+
+<p>
+  Faustregel: <strong>SKILL.md unter ~500 Zeilen</strong>, Detailtiefe in Zusatzdateien.
+  Ein vollständiges Minimalbeispiel:
+</p>
+
+<pre><code>---
+description: Deployt site/ nach GitHub Pages und verifiziert die
+  Live-URL. Nutzen bei "deploy", "veröffentlichen", "live stellen".
+disable-model-invocation: true
+---
+
+1. Sicherstellen, dass auf einem Feature-Branch gearbeitet wird.
+2. PR erstellen, mergen — der Workflow deployt bei Push auf main.
+3. Lauf beobachten: gh run list → ID → gh run watch &lt;id&gt; --exit-status
+4. Erst fertig melden, wenn die Live-URL die Änderung zeigt —
+   ein grüner Actions-Lauf allein reicht nicht.</code></pre>
+
+<h2>Wer darf auslösen?</h2>
+
+<p>
+  Zwei Wege führen zum selben Ergebnis: <strong>automatisch</strong> (Claude erkennt an
+  der description, dass der Skill passt) oder <strong>manuell</strong> per
+  <code>/skill-name argumente</code>. Zwei Frontmatter-Felder steuern, welcher Weg offen
+  ist — und das ist die eigentliche Design-Entscheidung pro Skill:
+</p>
+
+<ul>
+  <li><code>disable-model-invocation: true</code> — nur manuell. Für alles mit
+  <strong>Nebenwirkungen</strong> (deployen, pushen, löschen): der Mensch bleibt der
+  Auslöser, Claude startet so etwas nicht „bei Gelegenheit".</li>
+  <li><code>user-invocable: false</code> — umgekehrt: nicht im <code>/</code>-Menü, nur
+  Claude nutzt ihn. Für <strong>reines Wissen</strong>, das wirken soll, ohne dass man
+  dran denkt.</li>
+</ul>
+
+<p>
+  Im Skill-Text stehen Platzhalter zur Verfügung: <code>$ARGUMENTS</code> (alles),
+  <code>$0</code>, <code>$1</code>, … (einzeln), <code>${CLAUDE_SKILL_DIR}</code> (Pfad
+  zum Skill-Verzeichnis — für Hilfsskripte). Und mit
+  <code>!`befehl`</code> läuft ein Shell-Befehl <em>beim Laden</em>, dessen Ausgabe in
+  den Text eingesetzt wird, bevor Claude ihn sieht: Die Prozedur startet mit frischen
+  Fakten statt mit Annahmen.
+</p>
+
+<h2>Gute Skills schreiben</h2>
+
+<ul>
+  <li><strong>Die description ist das Produkt.</strong> Sie muss sagen, <em>was</em> der
+  Skill tut <em>und wann</em> er dran ist — mit den Wörtern, die in echten Aufgaben
+  vorkommen, nicht mit Binnenjargon.</li>
+  <li><strong>Eine Prozedur pro Skill.</strong> „Alles rund um Git" triggert nie richtig.
+  Lieber drei kleine als einen breiten.</li>
+  <li><strong>Schreiben wie für neue Kolleg:innen:</strong> nummerierte Schritte, konkrete
+  Befehle, erwartete Ergebnisse, bekannte Fallen.</li>
+  <li><strong>Testen wie ein Feature:</strong> frische Session; eine Aufgabe, die den
+  Skill auslösen <em>sollte</em> — feuert er? Eine, die ihn <em>nicht</em> auslösen
+  sollte — bleibt er still? Anthropics Plugin <code>skill-creator</code> automatisiert
+  das bis hin zum Messen der Trigger-Rate.</li>
+</ul>
+
+<h2>Fallstricke</h2>
+
+<div class="tbl">
+<table>
+  <tr><th>Symptom</th><th>Ursache</th><th>Abhilfe</th></tr>
+  <tr><td>Skill feuert nie</td><td>description zu vage</td><td>Trigger-Wörter aufnehmen; per <code>/&lt;name&gt;</code> gegentesten</td></tr>
+  <tr><td>Skill feuert dauernd</td><td>description zu breit</td><td>enger fassen oder nur-manuell schalten</td></tr>
+  <tr><td>lädt ohne Beschreibung</td><td>YAML-Frontmatter kaputt</td><td>mit <code>--debug</code> starten: zeigt Parse-Fehler</td></tr>
+  <tr><td>„vergessen" in langer Session</td><td>Compaction hat gekürzt</td><td>Skill einfach neu aufrufen</td></tr>
+</table>
+</div>
+
+<div class="warn">
+  <p><strong>Der klassische Denkfehler:</strong> alles in die CLAUDE.md kippen. Wenn Claude
+  eine Regel ignoriert, ist die CLAUDE.md meist zu lang — die Antwort ist nicht
+  <em>mehr</em> Text dort, sondern auslagern in Skills.</p>
+</div>
+
+<h2>Über Claude Code hinaus</h2>
+
+<p>
+  Skills gibt es auch im Agent SDK (liest dieselben Dateien aus dem Dateisystem), auf
+  claude.ai (ZIP-Upload) und in der API (Upload per <code>/v1/skills</code>). Aber:
+  <strong>sie synchronisieren nicht.</strong> Ein Skill ist portables <em>Format</em>,
+  kein geteilter <em>Speicher</em> — wer ihn auf zwei Flächen will, pflegt ihn zweimal.
+</p>
+
+<div class="key">
+  <p><strong>Die Kernidee.</strong> Ein Skill ist aufgeschriebene Erfahrung mit einem
+  Auslöser dran. Die description entscheidet, ob er gefunden wird; gestaffeltes Laden
+  sorgt dafür, dass Wissen erst kostet, wenn es gebraucht wird.</p>
+  <p style="margin-top:12px">Wer eine Erklärung zum dritten Mal tippt, hat einen Skill
+  identifiziert.</p>
+</div>
+
+<footer>
+  Langfassung im Repo unter <code>docs/claude-code/02-skills.md</code> ·
+  gehört zu <a href="claude-code.html">Kontext ist endlich</a> ·
+  <a href="index.html">zurück zur Übersicht</a>
+</footer>
+
+</div>
+</body>
+</html>
