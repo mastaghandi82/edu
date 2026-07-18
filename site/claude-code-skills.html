@@ -120,7 +120,10 @@ disable-model-invocation: true
   <p><strong>Lebendes Beispiel:</strong> Das Repo hinter dieser Website enthält selbst
   einen Skill — <code>.claude/skills/deploy-check/SKILL.md</code> verifiziert genau die
   Deployments, die diese Seite veröffentlichen. Die Doku beschreibt den Mechanismus, der
-  Skill wendet ihn an.</p>
+  Skill wendet ihn an. Sein erster Ernstfall — die Verifikation des eigenen Deployments —
+  lieferte prompt zwei neue Fallen für die Tabelle unten: Die Cloud-Session hatte weder
+  <code>gh</code> noch freien Netzzugang. Der Skill trug trotzdem, weil seine Schritte
+  das <em>Ziel</em> nennen, nicht nur das Werkzeug.</p>
 </div>
 
 <h2>Wer darf auslösen?</h2>
@@ -175,6 +178,8 @@ disable-model-invocation: true
   <tr><td>Skill feuert dauernd</td><td>description zu breit</td><td>enger fassen oder nur-manuell schalten</td></tr>
   <tr><td>lädt ohne Beschreibung</td><td>YAML-Frontmatter kaputt</td><td>mit <code>--debug</code> starten: zeigt Parse-Fehler</td></tr>
   <tr><td>„vergessen" in langer Session</td><td>Compaction hat gekürzt</td><td>Skill einfach neu aufrufen</td></tr>
+  <tr><td>Skill nennt Werkzeuge, die die Umgebung nicht hat</td><td>lokal geschrieben, in Cloud/Sandbox ausgeführt</td><td>Schritte ums <em>Ziel</em> formulieren, Befehl als Standardweg</td></tr>
+  <tr><td>Verifikation scheitert mit 403</td><td>Sandbox-Netzwerk-Policy, nicht das Deployment</td><td>Ursache trennen; Offenes offen melden statt grün&nbsp;=&nbsp;fertig</td></tr>
 </table>
 </div>
 
