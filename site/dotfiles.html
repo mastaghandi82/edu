@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dotfiles: Konfiguration als Repo — edu</title>
+<meta name="description" content="Warum persönliche Konfiguration ein Git-Repo verdient, was hinein gehört und was niemals — und warum die Allowlist gewinnt.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="back" href="index.html">← Übersicht</a>
+  <p class="kicker">Dotfiles</p>
+  <h1>Konfiguration ist Wissen —<br>und Wissen braucht ein Repo</h1>
+  <p class="lede">
+    Shell-Aliase, Editor-Einstellungen, die persönliche CLAUDE.md: destillierte
+    Arbeitserfahrung, die typischerweise unversioniert auf genau einer Platte liegt.
+  </p>
+</header>
+
+<h2>Warum überhaupt</h2>
+
+<p>
+  Für Konfiguration gilt derselbe Satz wie für Chat-Verläufe: <strong>Wissen, das nur an
+  einem Ort existiert, ist bereits verloren.</strong> Der Plattentod macht es nur
+  schlagartig sichtbar. Ein Repo löst drei Probleme auf einmal: <strong>Backup</strong>
+  (der offensichtliche Teil), <strong>Sync</strong> (neuer Rechner: klonen statt
+  nachbauen) — und <strong>das Warum</strong>: „Warum habe ich diese Regel im März
+  geändert?" steht in der Commit-Message. Sonst nirgends.
+</p>
+
+<p>
+  <em>Dotfiles</em> heißen die Konfigurationsdateien im Home-Verzeichnis, weil sie mit
+  einem Punkt beginnen (<code>.gitconfig</code>, <code>.zshrc</code>) — Unix blendet sie
+  standardmäßig aus. Das Muster umfasst längst auch ganze Verzeichnisse wie
+  <code>~/.claude/</code>.
+</p>
+
+<h2>Die entscheidende Sortierung</h2>
+
+<p>
+  Der häufigste Fehler ist, <em>zu viel</em> zu versionieren. Im Home liegen drei Sorten
+  Daten — und nur eine gehört ins Repo:
+</p>
+
+<div class="tbl">
+<table>
+  <tr><th>Kategorie</th><th>Beispiele</th><th>Ins Repo?</th></tr>
+  <tr><td>Konfiguration &amp; Wissen</td><td><code>CLAUDE.md</code>, <code>skills/</code>, <code>.zshrc</code>, <code>.gitconfig</code></td><td><strong>ja</strong></td></tr>
+  <tr><td>Zustand &amp; Verlauf</td><td>Session-Daten, Caches, History</td><td>nein — flüchtig, teils sensibel</td></tr>
+  <tr><td>Geheimnisse</td><td>Tokens, Keys, <code>.credentials.json</code></td><td><strong>niemals</strong></td></tr>
+</table>
+</div>
+
+<p>
+  Zustand zu sichern ist wertlos (veraltet in Minuten), Geheimnisse zu sichern ist
+  gefährlich. Übrig bleibt genau das, was man nach einem Plattentod wirklich vermisst.
+</p>
+
+<h2>Der Einstieg: Verzeichnis direkt als Repo</h2>
+
+<p>
+  Für einen abgegrenzten Ordner wie <code>~/.claude/</code> der einfachste Weg. Der Kern
+  ist eine <code>.gitignore</code> nach dem <strong>Allowlist-Prinzip</strong> — alles
+  verboten, Gewolltes einzeln freigeschaltet:
+</p>
+
+<pre><code>/*
+!.gitignore
+!CLAUDE.md
+!settings.json
+!skills/
+!agents/</code></pre>
+
+<div class="key">
+  <p><strong>Denylists vergessen, Allowlists nicht.</strong></p>
+  <p style="margin-top:12px">
+    Wer nur <code>.credentials.json</code> auf eine Verbotsliste setzt, committet
+    irgendwann die nächste Datei, an die niemand gedacht hat.
+  </p>
+</div>
+
+<p>Der Ablauf — mit dem Kontrollpunkt an der richtigen Stelle:</p>
+
+<pre><code>cd ~/.claude
+git init
+# .gitignore anlegen (siehe oben)
+git status     # ← DER Kontrollpunkt: nur Gewolltes sichtbar?
+git add . &amp;&amp; git commit -m "Claude-Konfiguration versionieren"
+git remote add origin git@github.com:&lt;user&gt;/claude-config.git
+git push -u origin main</code></pre>
+
+<p>
+  Das <code>git status</code> vor dem ersten <code>add</code> ist kein optionaler
+  Schritt: Hier wird die Allowlist bewiesen — nicht erst im Push.
+</p>
+
+<h2>Verstreute Dateien: das Bare-Repo</h2>
+
+<p>
+  Liegen die Dateien quer übers Home (<code>.zshrc</code>, <code>.gitconfig</code>,
+  <code>.config/…</code>), macht man das Home <em>nicht</em> direkt zum Repo — sonst
+  meldet jedes <code>git status</code> überall das Dotfiles-Repo. Der verbreitete
+  Trick: ein Repo ohne eigenes Arbeitsverzeichnis, das Home nur auf Zuruf benutzt:
+</p>
+
+<pre><code>git init --bare ~/.dotfiles
+alias config='git --git-dir=$HOME/.dotfiles --work-tree=$HOME'
+config config status.showUntrackedFiles no
+config add ~/.zshrc &amp;&amp; config commit -m "Shell-Konfiguration"</code></pre>
+
+<p>
+  Nichts wird automatisch eingesammelt; jede Datei kommt einzeln per <code>add</code>
+  dazu — dasselbe Allowlist-Prinzip, nur prozedural. Werkzeuge wie GNU Stow oder
+  chezmoi bauen das Muster aus; für den Einstieg braucht es sie nicht (und sie wurden
+  für diese Notizen nicht selbst durchlaufen — deshalb hier nur als Zeiger).
+</p>
+
+<h2>Geheimnisse: drei Verteidigungslinien</h2>
+
+<ul>
+  <li><strong>Allowlist</strong> — strukturell verhindern, dass Unbedachtes hineinrutscht.</li>
+  <li><strong>Lesen, was committet wird.</strong> Konkret: <code>settings.json</code> kann
+  einen <code>env</code>-Block mit API-Keys enthalten — vorher prüfen,
+  <code>git diff --cached</code> vor jedem Commit.</li>
+  <li><strong>Privates Repo — aber „privat" ist keine Sicherheitsmaßnahme.</strong> Es
+  schützt vor fremden Blicken, nicht vor dem eigenen versehentlichen Öffentlichmachen
+  später. Geheimnisse gehören <em>gar nicht</em> hinein.</li>
+</ul>
+
+<div class="warn">
+  <p><strong>Wenn doch eines gepusht wurde: rotieren, nicht nur löschen.</strong> Ein aus
+  der Historie entferntes Secret kann längst kopiert sein. History-Umschreiben ist
+  Kosmetik — der einzige sichere Zustand ist, dass das alte Token ungültig ist.</p>
+</div>
+
+<h2>Der Restore-Test</h2>
+
+<p>
+  <strong>Ein Backup, das nie zurückgespielt wurde, ist eine Vermutung.</strong> Bei
+  Dotfiles ist der Test so billig, dass es keine Ausrede gibt: in ein Testverzeichnis
+  klonen, prüfen, ob die Umgebung funktioniert. Für <code>~/.claude/</code>: Sieht eine
+  frische Claude-Code-Session die Skills und die CLAUDE.md? Erst danach ist es ein
+  Backup.
+</p>
+
+<div class="key">
+  <p><strong>Die Kernidee.</strong> Konfiguration ist Wissen, und Wissen braucht einen
+  Ort, der einen Plattentod überlebt. Versioniert wird per Allowlist — weil die
+  Verbotsliste immer eine Datei zu spät kommt.</p>
+</div>
+
+<footer>
+  Langfassung im Repo unter <code>docs/dotfiles/</code> ·
+  <a href="index.html">zurück zur Übersicht</a>
+</footer>
+
+</div>
+</body>
+</html>
