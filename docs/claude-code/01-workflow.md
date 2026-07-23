@@ -154,8 +154,7 @@ Events u.a.: `SessionStart`, `UserPromptSubmit`, `PreToolUse` (kann blockieren!)
 `PostToolUse`, `Stop`, `SessionEnd`, `PreCompact`.
 
 Typisch: Formatter nach jedem Edit (`PostToolUse`), Kontext beim Start laden
-(`SessionStart` — genau das speist die `progress.md` unten ein), geschützte Dateien blocken
-(`PreToolUse`).
+(`SessionStart`), geschützte Dateien blocken (`PreToolUse`).
 
 Faustregel: **Bitte an Claude = kann übersehen werden. Hook = passiert.** Was wirklich immer
 gelten muss, gehört in einen Hook, nicht in eine Anweisung.
@@ -195,16 +194,25 @@ Arbeiten nicht nötig — es ist eher ein Team-Feature.
 ## 10. Projektverlauf über Sitzungen
 
 `/clear` und Compaction löschen den Verlauf — das Projektwissen darf nicht mitsterben.
-Lösung: `.claude/progress.md`, per `SessionStart`-Hook beim Start eingespeist.
+Die Lösung ist kein zusätzliches Werkzeug, sondern Disziplin mit dem vorhandenen:
 
-Zwei Zonen:
-- **Kopf** (wird überschrieben): Ziel, Stand, nächste Schritte, offene Fragen
-- **Verlauf** (nur anhängen, neueste unten): `## YYYY-MM-DD — Titel` mit *was* und *warum so*
+- **Arbeit sauber abschließen** (Branch → PR → Merge): Was gemerged ist, braucht keine
+  Übergabe-Notiz.
+- **Ausführliche Commit-Messages** mit dem *Warum*: Was gemacht wurde, zeigt der Diff —
+  warum es so entschieden wurde, steht sonst nirgends.
+- **Offene Punkte in Issues**: Nächste Schritte und ungeklärte Fragen überleben dort
+  jeden Rechner und jede Session.
 
-Das *Warum* ist der eigentliche Wert. Was gemacht wurde, steht in der Git-Historie. Warum es
-so und nicht anders entschieden wurde, steht **nirgends** — außer hier.
+Die Probe: Die Frage „Wo sind wir stehen geblieben?" muss sich aus `git log` und den
+offenen PRs beantworten lassen.
 
-Nicht committen: persönlicher Arbeitsstand → `.git/info/exclude`.
+> Früher stand hier eine `.claude/progress.md` (per `SessionStart`-Hook eingespeist) als
+> Zwischenspeicher für den Arbeitsstand. Gestrichen, nachdem die Probe aufs Exempel
+> gelang: Eine neue Session konnte den Stand vollständig aus Historie und PRs
+> rekonstruieren — weil nichts halbfertig liegen geblieben war. Ein solcher Puffer lohnt
+> nur, wenn oft mitten in der Arbeit abgebrochen wird; nach der Dotfiles-Sortierung ist
+> er *Zustand*, nicht *Wissen* — und je kürzer etwas darin lebt, desto besser läuft das
+> Projekt.
 
 ---
 
