@@ -232,12 +232,20 @@ problem and show an improved version. Keep feedback concise.</code></pre>
 </p>
 
 <p>
-  Für den Arbeitsstand zwischen Sitzungen: <code>.claude/progress.md</code>, per
-  <code>SessionStart</code>-Hook eingespeist. Zwei Zonen — Kopf (wird überschrieben: Ziel,
-  Stand, nächste Schritte) und Verlauf (nur anhängen: <em>was</em> und <em>warum so</em>).
-  Das <em>Warum</em> ist der eigentliche Wert: Was gemacht wurde, steht in der Git-Historie.
-  Warum es so entschieden wurde, steht sonst nirgends.
+  Den Arbeitsstand zwischen Sitzungen trägt Git selbst — sofern in sauberen Einheiten
+  gearbeitet wird: Branch → PR → Merge, ausführliche Commit-Messages mit dem
+  <em>Warum</em> (was gemacht wurde, zeigt der Diff; warum, steht sonst nirgends),
+  offene Punkte in Issues statt im Gedächtnis. Die Probe: „Wo sind wir stehen
+  geblieben?" muss sich aus <code>git log</code> und den offenen PRs beantworten lassen.
 </p>
+
+<div class="note">
+  <p>Hier stand früher eine <code>.claude/progress.md</code> als Zwischenspeicher für den
+  Arbeitsstand, per <code>SessionStart</code>-Hook eingespeist. Gestrichen, nachdem die
+  Probe aufs Exempel gelang: Eine neue Session konnte den Stand vollständig aus Historie
+  und PRs rekonstruieren — weil nichts halbfertig liegen geblieben war. Ein solcher
+  Puffer lohnt nur, wenn oft mitten in der Arbeit abgebrochen wird.</p>
+</div>
 
 <h2>Terminal vs. IDE</h2>
 
