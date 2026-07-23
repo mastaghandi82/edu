@@ -123,6 +123,35 @@ es kaputt sein. Bei uns ist das direkt sichtbar: Jeder Push auf `main` löst ein
 
 Das `-u` beim ersten Push verknüpft lokalen und entfernten Branch. Danach reicht `git push`.
 
+### Welche Branches sind sinnvoll?
+
+Leitfrage: **kurzlebig oder langlebig?** Fast alle guten Strategien haben *wenige* langlebige
+und *viele* kurzlebige Branches.
+
+- **`main`** — die einzige dauerhafte Linie. Muss *jederzeit deploybar* sein, hier sogar
+  wörtlich: Jeder Push geht live. Alles Wackelige passiert woanders.
+- **Feature-Branches** — kurzlebig, der Alltag. Ein Branch = *ein* Thema = *ein* PR. Entsteht,
+  lebt ein paar Commits, wird gemergt, verschwindet.
+
+**Faustregel:** Ein Branch, der länger als ein paar Tage lebt, ist ein Warnsignal — je länger
+er von `main` abweicht, desto schmerzhafter der spätere Merge („Merge-Hölle"). Ein Branch ist
+eine *Frage an `main`*: schnell beantwortet (gemergt) und dann geschlossen.
+
+Namens-Präfixe sind reine Konvention, ordnen aber die Branch-Liste:
+
+| Präfix | wofür |
+|---|---|
+| `feature/` / `feat/` | neue Funktion, neues Thema |
+| `fix/` | Bugfix |
+| `docs/` | nur Doku |
+| `revert-…` | von GitHub **automatisch** vergeben beim Revert-Button |
+
+**Was dieses Projekt (noch) nicht braucht:** `release/`- und `hotfix/`-Branches oder ein
+dauerhaftes `develop` (das „Git Flow"-Modell) lohnen erst, wenn man **mehrere Versionen
+parallel pflegt** — etwa v1.x weiter mit Fixes versorgen, während v2 entsteht. Für ein „immer
+die neueste Fassung ist live"-Projekt ist das Overhead ohne Nutzen. Das hier genutzte Modell
+heißt **GitHub Flow**: `main` + kurzlebige Branches + Deploy bei Merge.
+
 ## Remotes
 
 Ein *Remote* ist eine benannte Adresse einer Repo-Kopie. `origin` ist reine Konvention für
